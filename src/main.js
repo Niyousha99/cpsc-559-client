@@ -47,3 +47,36 @@ app.on('activate', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+
+
+
+const express = require('express')
+const server = express()
+const port = 8888
+
+
+server.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+
+server.use(express.static('upload'))
+
+server.listen(port, () => {
+  console.log(`Example app listening on port ${port}`)
+})
+
+
+
+// const http = require('http'); // or 'https' for https:// URLs
+// const fs = require('fs');
+
+// const file = fs.createWriteStream("/download/ar.mp4");
+// const request = http.get("http://localhost:3000/ar.mp4", function(response) {
+//    response.pipe(file);
+
+//    // after download completed close filestream
+//    file.on("finish", () => {
+//        file.close();
+//        console.log("Download Completed");
+//    });
+// });
