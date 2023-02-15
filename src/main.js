@@ -49,14 +49,39 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+
+  // fetch('http://localhost:3001/').then(response => response.json())
+  // .then(data => console.log(data))
+  // .catch(error => console.error(error));
 });
+
+
+// notify the tracker before quitting
+app.on('before-quit', () => {
+  // create timestamp
+  let ts = Date.now();
+  // timestampe is the number of milliseconds elapsed since the epoch
+  const postData = { ip: "127.0.0.1", timestamp: ts };
+
+  // send post request to the tracker
+  fetch('http://localhost:3001/', {
+    method: 'POST',
+    headers: {
+      'Content-Type':'application/json'
+    },
+    body: JSON.stringify(postData)
+  })
+    .then(response => response.json())
+    .then(data => console.log(data))
+    .catch(error => console.error(error));
+});
+
 
 
 
 // open express server on port 8888
 const server = express()
 const port = 8888
-
 
 // host all the files in ./upload on port 8888
 server.use(express.static('upload'))
