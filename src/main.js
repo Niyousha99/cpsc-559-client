@@ -32,7 +32,15 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+app.on('ready', ()=>{
+  createWindow();
+
+  const upload_folder = path.join(__dirname, '../../', 'upload')
+  fs.readdir(upload_folder, (error, files) => {
+    if (error) console.log(error)
+    files.forEach(file => console.log(file))
+  })
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
@@ -49,6 +57,7 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+
 
   // fetch('http://localhost:3001/').then(response => response.json())
   // .then(data => console.log(data))
@@ -67,7 +76,7 @@ app.on('before-quit', () => {
   fetch('http://localhost:3001/', {
     method: 'POST',
     headers: {
-      'Content-Type':'application/json'
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(postData)
   })
@@ -83,9 +92,15 @@ app.on('before-quit', () => {
 const server = express()
 const port = 8888
 
+server.get('/test', (req,res)=>{
+  console.log("for testing")
+  res.sendStatus(200).end();
+})
 // host all the files in ./upload on port 8888
-server.use(express.static('upload'))
+server.use(express.static(path.join(__dirname, '../../','upload')))
+
 server.listen(port, () => {
+  console.log(`${__dirname}`)
   console.log(`Client software is accessible on port ${port}`)
 })
 
@@ -93,7 +108,7 @@ server.listen(port, () => {
 
 const download = (ip, filename) => {
   // the destination file is ./download/<filename>
-  const file = fs.createWriteStream(`./download/${filename}`);
+  const file = fs.createWriteStream(path.join(__dirname,'../../', 'download',filename));
   // request the file
   const request = http.get(`http://${ip}:8888/${filename}`, function (response) {
     // pipe the binary stream into the file
