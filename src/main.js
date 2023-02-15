@@ -1,5 +1,9 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+
+const http = require('http'); // or 'https' for https:// URLs
+const fs = require('fs');
+const express = require('express')
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -16,11 +20,13 @@ const createWindow = () => {
     },
   });
 
+  // create a handler for ipc 'download'
+  ipcMain.handle('download', (event, ip, filename) => download(ip, filename))
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 };
 
 // This method will be called when Electron has finished
@@ -45,38 +51,33 @@ app.on('activate', () => {
   }
 });
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
 
 
-
-const express = require('express')
+// open express server on port 8888
 const server = express()
 const port = 8888
 
 
-server.get('/', (req, res) => {
-  res.send('Hello World!')
-})
-
+// host all the files in ./upload on port 8888
 server.use(express.static('upload'))
-
 server.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
+  console.log(`Client software is accessible on port ${port}`)
 })
 
 
 
-// const http = require('http'); // or 'https' for https:// URLs
-// const fs = require('fs');
-
-// const file = fs.createWriteStream("/download/ar.mp4");
-// const request = http.get("http://localhost:3000/ar.mp4", function(response) {
-//    response.pipe(file);
-
-//    // after download completed close filestream
-//    file.on("finish", () => {
-//        file.close();
-//        console.log("Download Completed");
-//    });
-// });
+const download = (ip, filename) => {
+  // the destination file is ./download/<filename>
+  const file = fs.createWriteStream(`./download/${filename}`);
+  // request the file
+  const request = http.get(`http://${ip}:8888/${filename}`, function (response) {
+    // pipe the binary stream into the file
+    response.pipe(file);
+    // after download completed close filestream
+    file.on("finish", () => {
+      file.close();
+      console.log("Download Completed");
+    });
+  });
+  return "download started"
+}
