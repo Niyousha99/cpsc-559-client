@@ -4,6 +4,7 @@ const path = require('path');
 const http = require('http'); // or 'https' for https:// URLs
 const fs = require('fs');
 const express = require('express')
+const crypto = require("crypto")
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -32,13 +33,26 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', ()=>{
+app.on('ready', () => {
   createWindow();
 
   const upload_folder = path.join(__dirname, '../../', 'upload')
   fs.readdir(upload_folder, (error, files) => {
     if (error) console.log(error)
-    files.forEach(file => console.log(file))
+    files.forEach(file => {
+      console.log(file)
+      // get the sha256 hash of the file
+      var sha256sum = crypto.createHash("sha256")
+      var s = fs.ReadStream(path.join(__dirname, '../../', 'upload', file));
+      s.on('data', function(d) {
+        sha256sum.update(d);
+      });
+
+      s.on('end', function() {
+        var d = sha256sum.digest('hex');
+        console.log(d + '  ' + file);
+      })
+    })
   })
 });
 
@@ -92,12 +106,12 @@ app.on('before-quit', () => {
 const server = express()
 const port = 8888
 
-server.get('/test', (req,res)=>{
+server.get('/test', (req, res) => {
   console.log("for testing")
   res.sendStatus(200).end();
 })
 // host all the files in ./upload on port 8888
-server.use(express.static(path.join(__dirname, '../../','upload')))
+server.use(express.static(path.join(__dirname, '../../', 'upload')))
 
 server.listen(port, () => {
   console.log(`${__dirname}`)
@@ -108,7 +122,7 @@ server.listen(port, () => {
 
 const download = (ip, filename) => {
   // the destination file is ./download/<filename>
-  const file = fs.createWriteStream(path.join(__dirname,'../../', 'download',filename));
+  const file = fs.createWriteStream(path.join(__dirname, '../../', 'download', filename));
   // request the file
   const request = http.get(`http://${ip}:8888/${filename}`, function (response) {
     // pipe the binary stream into the file
