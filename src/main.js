@@ -37,6 +37,106 @@ const createWindow = () => {
 app.on('ready', () => {
   createWindow();
 
+  upload_files();
+});
+
+// Quit when all windows are closed, except on macOS. There, it's common
+// for applications and their menu bar to stay active until the user quits
+// explicitly with Cmd + Q.
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+app.on('activate', () => {
+  // On OS X it's common to re-create a window in the app when the
+  // dock icon is clicked and there are no other windows open.
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+
+
+  // fetch('http://localhost:3001/').then(response => response.json())
+  // .then(data => console.log(data))
+  // .catch(error => console.error(error));
+});
+
+
+// notify the tracker before quitting
+app.on('before-quit', () => {
+  exit_network();
+});
+
+
+
+
+// open express server on port 8888
+const server = express()
+const port = 8888
+
+server.get('/test', (req, res) => {
+  console.log("for testing")
+  res.sendStatus(200).end();
+})
+// host all the files in ./upload on port 8888
+server.use(express.static(path.join(__dirname, '../../', 'upload')))
+
+server.listen(port, () => {
+  console.log(`${__dirname}`)
+  console.log(`Client software is accessible on port ${port}`)
+})
+
+
+const join_network = () => {
+  // create timestamp
+  // timestampe is the number of milliseconds elapsed since the epoch
+  const message = { ip: "127.0.0.1", timestamp: Date.now() };
+  // send post request to the tracker
+  fetch('http://localhost:3001/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(message)
+  })
+    .then(data => console.log(data))
+    .catch(error => console.error(error));
+}
+
+const getFile = (filename, hash) => {
+  // create timestamp
+  // timestampe is the number of milliseconds elapsed since the epoch
+  const message = { ip: "127.0.0.1", timestamp: Date.now(), "filename":filename, "hash":hash};
+  // send post request to the tracker
+  fetch('http://localhost:3001/', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(message)
+  })
+    .then(data => console.log(data))
+    .catch(error => console.error(error));
+}
+
+const getFiles = () => {
+    // create timestamp
+  // timestampe is the number of milliseconds elapsed since the epoch
+  const message = { ip: "127.0.0.1", timestamp: Date.now() };
+  // send post request to the tracker
+  fetch('http://localhost:3001/', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(message)
+  })
+    .then(data => console.log(data))
+    .catch(error => console.error(error));
+}
+
+const upload_files = () => {
   const hashes = [];
   const upload_folder = path.join(__dirname, '../../', 'upload')
 
@@ -70,78 +170,30 @@ app.on('ready', () => {
             },
             body: JSON.stringify(message)
           })
-            .then(response => response.json())
             .then(data => console.log(data))
             .catch(error => console.error(error));
         }
       });
     });
   });
-});
+}
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
+const exit_network = () => {
 
-app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
-
-
-  // fetch('http://localhost:3001/').then(response => response.json())
-  // .then(data => console.log(data))
-  // .catch(error => console.error(error));
-});
-
-
-// notify the tracker before quitting
-app.on('before-quit', () => {
   // create timestamp
-  let ts = Date.now();
   // timestampe is the number of milliseconds elapsed since the epoch
-  const postData = { ip: "127.0.0.1", timestamp: ts };
-
-  // send post request to the tracker
-  fetch('http://localhost:3001/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(postData)
-  })
-    .then(response => response.json())
-    .then(data => console.log(data))
-    .catch(error => console.error(error));
-});
-
-
-
-
-// open express server on port 8888
-const server = express()
-const port = 8888
-
-server.get('/test', (req, res) => {
-  console.log("for testing")
-  res.sendStatus(200).end();
-})
-// host all the files in ./upload on port 8888
-server.use(express.static(path.join(__dirname, '../../', 'upload')))
-
-server.listen(port, () => {
-  console.log(`${__dirname}`)
-  console.log(`Client software is accessible on port ${port}`)
-})
-
-
+    const message = { ip: "127.0.0.1", timestamp: Date.now() };
+    // send post request to the tracker
+    fetch('http://localhost:3001/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(message)
+    })
+      .then(data => console.log(data))
+      .catch(error => console.error(error));
+}
 
 const download = (ip, filename) => {
   // the destination file is ./download/<filename>
