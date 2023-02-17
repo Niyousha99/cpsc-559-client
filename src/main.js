@@ -5,6 +5,7 @@ const http = require('http'); // or 'https' for https:// URLs
 const fs = require('fs');
 const express = require('express')
 const crypto = require("crypto")
+require('dotenv').config()
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -37,7 +38,7 @@ const createWindow = () => {
 app.on('ready', () => {
   createWindow();
 
-  upload_files();
+  tracker_join();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -55,8 +56,6 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
-
-
   // fetch('http://localhost:3001/').then(response => response.json())
   // .then(data => console.log(data))
   // .catch(error => console.error(error));
@@ -65,7 +64,7 @@ app.on('activate', () => {
 
 // notify the tracker before quitting
 app.on('before-quit', () => {
-  exit_network();
+  tracker_exit();
 });
 
 
@@ -88,12 +87,12 @@ server.listen(port, () => {
 })
 
 
-const join_network = () => {
+const tracker_join = () => {
   // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
   const message = { ip: "127.0.0.1", timestamp: Date.now() };
   // send post request to the tracker
-  fetch('http://localhost:3001/', {
+  fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/join`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -104,12 +103,12 @@ const join_network = () => {
     .catch(error => console.error(error));
 }
 
-const getFile = (filename, hash) => {
+const tracker_getFile = (filename, hash) => {
   // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
   const message = { ip: "127.0.0.1", timestamp: Date.now(), "filename":filename, "hash":hash};
   // send post request to the tracker
-  fetch('http://localhost:3001/', {
+  fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/getFile`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
@@ -120,12 +119,12 @@ const getFile = (filename, hash) => {
     .catch(error => console.error(error));
 }
 
-const getFiles = () => {
+const tracker_getFiles = () => {
     // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
   const message = { ip: "127.0.0.1", timestamp: Date.now() };
   // send post request to the tracker
-  fetch('http://localhost:3001/', {
+  fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/getFiles`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
@@ -136,7 +135,7 @@ const getFiles = () => {
     .catch(error => console.error(error));
 }
 
-const upload_files = () => {
+const tracker_upload = () => {
   const hashes = [];
   const upload_folder = path.join(__dirname, '../../', 'upload')
 
@@ -163,7 +162,7 @@ const upload_files = () => {
         processedFiles++;
         if (processedFiles === files.length) {
           const message = { ip: "127.0.0.1", timestamp: Date.now(), files: hashes }
-          fetch('http://localhost:3001/', {
+          fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/upload`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -178,13 +177,13 @@ const upload_files = () => {
   });
 }
 
-const exit_network = () => {
+const tracker_exit = () => {
 
   // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
     const message = { ip: "127.0.0.1", timestamp: Date.now() };
     // send post request to the tracker
-    fetch('http://localhost:3001/', {
+    fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/exit`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
