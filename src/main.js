@@ -30,30 +30,53 @@ const createWindow = () => {
   // mainWindow.webContents.openDevTools();
 };
 
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
   createWindow();
 
+  const hashes = [];
   const upload_folder = path.join(__dirname, '../../', 'upload')
+
   fs.readdir(upload_folder, (error, files) => {
-    if (error) console.log(error)
-    files.forEach(file => {
-      console.log(file)
+    if (error) console.log(error);
+
+    let processedFiles = 0;
+
+    files.forEach(filename => {
+      console.log(filename);
+
       // get the sha256 hash of the file
-      var sha256sum = crypto.createHash("sha256")
-      var s = fs.ReadStream(path.join(__dirname, '../../', 'upload', file));
-      s.on('data', function(d) {
+      const sha256sum = crypto.createHash('sha256');
+      const s = fs.createReadStream(path.join(upload_folder, filename));
+
+      s.on('data', function (d) {
         sha256sum.update(d);
       });
 
-      s.on('end', function() {
-        var d = sha256sum.digest('hex');
-        console.log(d + '  ' + file);
-      })
-    })
-  })
+      s.on('end', function () {
+        const hash = sha256sum.digest('hex');
+        hashes.push({ filename, hash });
+
+        processedFiles++;
+        if (processedFiles === files.length) {
+          const message = { ip: "127.0.0.1", timestamp: Date.now(), files: hashes }
+          fetch('http://localhost:3001/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(message)
+          })
+            .then(response => response.json())
+            .then(data => console.log(data))
+            .catch(error => console.error(error));
+        }
+      });
+    });
+  });
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
