@@ -7,6 +7,7 @@ import {
   ListItemSecondaryAction,
   IconButton,
   TextField,
+  Button
 } from "@material-ui/core";
 import { GetApp as DownloadIcon } from "@material-ui/icons";
 
@@ -55,6 +56,12 @@ const FileList = () => {
         value={searchTerm}
         onChange={handleChange}
       />
+      <Button style={{margin:'10px'}}variant="contained" color="primary" component="label">
+      Upload
+      <input hidden multiple type="file" />
+      </Button>
+      <Button variant="contained" color="primary">Refresh</Button>
+
       <List className={classes.root}>
         {filteredList.map((file, index) => (
           <ListItem key={index}>
