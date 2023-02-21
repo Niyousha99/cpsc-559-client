@@ -127,7 +127,8 @@ const tracker_getFiles = () => {
       'Content-Type': 'application/json'
     },
   })
-    .then(data => console.log(data.json()))
+    .then(response => response.json())
+    .then(data => console.log(data))
     .catch(error => console.error(`Error on getFiles: ${error}`));
 }
 
