@@ -1,19 +1,22 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow,  ipcMain } = require('electron');
 const path = require('path');
 
 const http = require('http'); // or 'https' for https:// URLs
 const fs = require('fs');
 const express = require('express')
-const crypto = require("crypto")
+const crypto = require("crypto");
+const { response } = require('express');
+require('dotenv').config()
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
+let mainWindow;
 const createWindow = () => {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
@@ -22,13 +25,17 @@ const createWindow = () => {
   });
 
   // create a handler for ipc 'download'
-  ipcMain.handle('download', (event, ip, filename) => download(ip, filename))
+  ipcMain.handle('download', (event, filename, hash) => tracker_getFile(filename, hash))
+  // create a handler for ipc 'refresh'
+  ipcMain.handle('refresh', (event) => tracker_getFiles())
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools();
 };
+
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -36,24 +43,9 @@ const createWindow = () => {
 app.on('ready', () => {
   createWindow();
 
-  const upload_folder = path.join(__dirname, '../../', 'upload')
-  fs.readdir(upload_folder, (error, files) => {
-    if (error) console.log(error)
-    files.forEach(file => {
-      console.log(file)
-      // get the sha256 hash of the file
-      var sha256sum = crypto.createHash("sha256")
-      var s = fs.ReadStream(path.join(__dirname, '../../', 'upload', file));
-      s.on('data', function(d) {
-        sha256sum.update(d);
-      });
-
-      s.on('end', function() {
-        var d = sha256sum.digest('hex');
-        console.log(d + '  ' + file);
-      })
-    })
-  })
+  tracker_join();
+  tracker_upload(); // this only upload at start up
+  tracker_getFiles();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -71,32 +63,12 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
-
-
-  // fetch('http://localhost:3001/').then(response => response.json())
-  // .then(data => console.log(data))
-  // .catch(error => console.error(error));
 });
 
 
 // notify the tracker before quitting
 app.on('before-quit', () => {
-  // create timestamp
-  let ts = Date.now();
-  // timestampe is the number of milliseconds elapsed since the epoch
-  const postData = { ip: "127.0.0.1", timestamp: ts };
-
-  // send post request to the tracker
-  fetch('http://localhost:3001/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(postData)
-  })
-    .then(response => response.json())
-    .then(data => console.log(data))
-    .catch(error => console.error(error));
+  tracker_exit();
 });
 
 
@@ -107,9 +79,11 @@ const server = express()
 const port = 8888
 
 server.get('/test', (req, res) => {
-  console.log("for testing")
+  // console.log("for testing")
   res.sendStatus(200).end();
 })
+
+
 // host all the files in ./upload on port 8888
 server.use(express.static(path.join(__dirname, '../../', 'upload')))
 
@@ -117,6 +91,124 @@ server.listen(port, () => {
   console.log(`${__dirname}`)
   console.log(`Client software is accessible on port ${port}`)
 })
+
+
+const tracker_join = () => {
+  // create timestamp
+  // timestampe is the number of milliseconds elapsed since the epoch
+  const message = { timestamp: Date.now() };
+  // send post request to the tracker
+  fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/join`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(message)
+  })
+    .catch(error => console.error(`Error on join: ${error}`));
+}
+
+const tracker_getFile = (filename, hash) => {
+  // create timestamp
+  // timestampe is the number of milliseconds elapsed since the epoch
+  // const message = { timestamp: Date.now(), "filename": filename, "hash": hash };
+  // send post request to the tracker
+  // let peers;
+
+  fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/getFile?timestamp=${Date.now()}&filename=${filename}&hash=${hash}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+  })
+    .then(response => response.json())
+    .then(data => {
+      let peers = data.peers;
+      download(peers[0].ip, filename)
+    })
+    .catch(error => console.error(error));
+
+  // return peers;
+}
+
+const tracker_getFiles = () => {
+  // create timestamp
+  // timestampe is the number of milliseconds elapsed since the epoch
+  // send post request to the tracker
+  fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/getFiles?timestamp=${Date.now()}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+  })
+    .then(response => response.json())
+    .then(data => {
+      mainWindow.webContents.send('refresh-return', data)
+    })
+    .catch(error => console.error(`Error on getFiles: ${error}`));
+}
+
+const tracker_upload = () => {
+  const hashes = [];
+  const upload_folder = path.join(__dirname, '../../', 'upload')
+
+  // read files from the upload directory
+  fs.readdir(upload_folder, (error, files) => {
+    // if error, print error
+    if (error) console.log(error);
+
+    // count the number of files processed
+    let processedFiles = 0;
+
+    // for each file, calculate sha256 hash result
+    files.forEach(filename => {
+      // console.log(filename);
+      // get the sha256 hash of the file
+      const sha256sum = crypto.createHash('sha256');
+      const s = fs.createReadStream(path.join(upload_folder, filename));
+
+      // on each chunk, update the PRNG state
+      s.on('data', function (d) {
+        sha256sum.update(d);
+      });
+
+      // on finish, produce the PRNG result
+      s.on('end', function () {
+        const hash = sha256sum.digest('hex');
+        hashes.push({ filename, hash });
+        processedFiles++;
+        // if all files processed
+        if (processedFiles === files.length) {
+          // send post request to the tracker
+          const message = { timestamp: Date.now(), files: hashes }
+          fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/upload`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(message)
+          })
+            .catch(error => console.error(`Error on Join: ${error}`));
+        }
+      });
+    });
+  });
+}
+
+const tracker_exit = () => {
+  // create timestamp
+  // timestampe is the number of milliseconds elapsed since the epoch
+  const message = { timestamp: Date.now() };
+  // send post request to the tracker
+  fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/exit`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(message)
+  })
+    .catch(error => console.error(error));
+}
 
 
 

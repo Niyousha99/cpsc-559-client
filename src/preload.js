@@ -9,6 +9,10 @@ contextBridge.exposeInMainWorld('versions', {
   node: () => process.versions.node,
   chrome: () => process.versions.chrome,
   electron: () => process.versions.electron,
-  download: (ip,filename) => ipcRenderer.invoke('download', ip, filename),
-  // we can also expose variables, not just functions
+  download: (filename,hash) => ipcRenderer.invoke('download', filename, hash),
+  upload: () => ipcRenederer.invoke('upload'),
+  refresh: () => ipcRenderer.invoke('refresh'),
+  // expose a callback method from main to rendererer. Main invoke the stub
+  // renderer handle the stub
+  refreshReturn: (callback) => ipcRenderer.on('refresh-return', callback)
 })
