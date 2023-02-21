@@ -39,6 +39,8 @@ app.on('ready', () => {
   createWindow();
 
   tracker_join();
+  tracker_upload(); // this only upload at start up
+  tracker_getFiles(); 
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -56,9 +58,6 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
-  // fetch('http://localhost:3001/').then(response => response.json())
-  // .then(data => console.log(data))
-  // .catch(error => console.error(error));
 });
 
 
@@ -75,7 +74,7 @@ const server = express()
 const port = 8888
 
 server.get('/test', (req, res) => {
-  console.log("for testing")
+  // console.log("for testing")
   res.sendStatus(200).end();
 })
 // host all the files in ./upload on port 8888
@@ -90,7 +89,7 @@ server.listen(port, () => {
 const tracker_join = () => {
   // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
-  const message = { ip: "127.0.0.1", timestamp: Date.now() };
+  const message = { timestamp: Date.now() };
   // send post request to the tracker
   fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/join`, {
     method: 'POST',
@@ -99,14 +98,13 @@ const tracker_join = () => {
     },
     body: JSON.stringify(message)
   })
-    .then(data => console.log(data))
-    .catch(error => console.error(error));
+    .catch(error => console.error(`Error on join: ${error}`));
 }
 
 const tracker_getFile = (filename, hash) => {
   // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
-  const message = { ip: "127.0.0.1", timestamp: Date.now(), "filename":filename, "hash":hash};
+  const message = {  timestamp: Date.now(), "filename":filename, "hash":hash};
   // send post request to the tracker
   fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/getFile`, {
     method: 'GET',
@@ -122,46 +120,50 @@ const tracker_getFile = (filename, hash) => {
 const tracker_getFiles = () => {
     // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
-  const message = { ip: "127.0.0.1", timestamp: Date.now() };
   // send post request to the tracker
-  fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/getFiles`, {
+  fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/getFiles?timestamp=${Date.now()}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(message)
   })
-    .then(data => console.log(data))
-    .catch(error => console.error(error));
+    .then(data => console.log(data.json()))
+    .catch(error => console.error(`Error on getFiles: ${error}`));
 }
 
 const tracker_upload = () => {
   const hashes = [];
   const upload_folder = path.join(__dirname, '../../', 'upload')
 
+  // read files from the upload directory
   fs.readdir(upload_folder, (error, files) => {
+    // if error, print error
     if (error) console.log(error);
-
+    
+    // count the number of files processed
     let processedFiles = 0;
 
+    // for each file, calculate sha256 hash result
     files.forEach(filename => {
-      console.log(filename);
-
+      // console.log(filename);
       // get the sha256 hash of the file
       const sha256sum = crypto.createHash('sha256');
       const s = fs.createReadStream(path.join(upload_folder, filename));
-
+      
+      // on each chunk, update the PRNG state
       s.on('data', function (d) {
         sha256sum.update(d);
       });
 
+      // on finish, produce the PRNG result
       s.on('end', function () {
         const hash = sha256sum.digest('hex');
         hashes.push({ filename, hash });
-
         processedFiles++;
+        // if all files processed
         if (processedFiles === files.length) {
-          const message = { ip: "127.0.0.1", timestamp: Date.now(), files: hashes }
+          // send post request to the tracker
+          const message = {  timestamp: Date.now(), files: hashes }
           fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/upload`, {
             method: 'POST',
             headers: {
@@ -169,8 +171,7 @@ const tracker_upload = () => {
             },
             body: JSON.stringify(message)
           })
-            .then(data => console.log(data))
-            .catch(error => console.error(error));
+            .catch(error => console.error(`Error on Join: ${error}`));
         }
       });
     });
@@ -178,10 +179,9 @@ const tracker_upload = () => {
 }
 
 const tracker_exit = () => {
-
   // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
-    const message = { ip: "127.0.0.1", timestamp: Date.now() };
+    const message = { timestamp: Date.now() };
     // send post request to the tracker
     fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/exit`, {
       method: 'POST',
@@ -190,7 +190,6 @@ const tracker_exit = () => {
       },
       body: JSON.stringify(message)
     })
-      .then(data => console.log(data))
       .catch(error => console.error(error));
 }
 
