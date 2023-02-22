@@ -31,7 +31,6 @@ const createWindow = () => {
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
-
   // Open the DevTools.
   // mainWindow.webContents.openDevTools();
 };
@@ -166,7 +165,7 @@ const tracker_upload = () => {
       // get the sha256 hash of the file
       const sha256sum = crypto.createHash('sha256');
       const s = fs.createReadStream(path.join(upload_folder, filename));
-
+      const stats = fs.statSync(path.join(upload_folder, filename));
       // on each chunk, update the PRNG state
       s.on('data', function (d) {
         sha256sum.update(d);
@@ -175,7 +174,7 @@ const tracker_upload = () => {
       // on finish, produce the PRNG result
       s.on('end', function () {
         const hash = sha256sum.digest('hex');
-        hashes.push({ filename, hash });
+        hashes.push({ filename:filename, hash:hash, size:stats.size });
         processedFiles++;
         // if all files processed
         if (processedFiles === files.length) {
