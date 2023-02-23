@@ -24,6 +24,7 @@ const createWindow = () => {
     },
   });
 
+  ipcMain.handle('upload', (event) => tracker_upload())
   // create a handler for ipc 'download'
   ipcMain.handle('download', (event, filename, hash) => tracker_getFile(filename, hash))
   // create a handler for ipc 'refresh'
