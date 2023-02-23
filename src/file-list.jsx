@@ -7,7 +7,8 @@ import {
   ListItemSecondaryAction,
   IconButton,
   TextField,
-  Button
+  Button,
+  Tooltip
 } from "@material-ui/core";
 import { GetApp as DownloadIcon } from "@material-ui/icons";
 
@@ -18,14 +19,6 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-// TODO dynamically get list of files from the tracker
-// const fileList = [
-//   { name: "sample.pdf", ip: "10.0.0.206", size: "10 KB" },
-//   { name: "file2.txt", ip: "10.0.0.206", size: "15 KB" },
-//   { name: "file3.txt", ip: "10.0.0.206", size: "20 KB" },
-//   { name: "file4.txt", ip: "10.0.0.206", size: "25 KB" },
-// ];
-
 const FileList = () => {
 
   const [files, setFiles] = useState([])
@@ -35,9 +28,17 @@ const FileList = () => {
   const classes = useStyles();
   const [searchTerm, setSearchTerm] = useState("");
 
-  // const handleChange = (event) => {
-  //   setSearchTerm(event.target.value);
-  // };
+  const formatFileSize = (bytes) => {
+   if(bytes == 0) return '0 Bytes';
+   var k = 1000,
+       sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
+       i = Math.floor(Math.log(bytes) / Math.log(k));
+   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+  const handleChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
 
   // useEffect(()=>{
   //   const temp = files.filter((file) =>
@@ -72,9 +73,9 @@ const FileList = () => {
         label="Search"
         variant="outlined"
         value={searchTerm}
-        // onChange={handleChange}
+        onChange={handleChange}
       />
-      <Button style={{margin:'10px'}}variant="contained" color="primary" component="label">
+      <Button style={{margin:'10px'}}variant="contained" color="primary" component="label" onClick={() => window.versions.upload()}>
       Upload
       <input hidden multiple type="file" />
       </Button>
@@ -83,7 +84,9 @@ const FileList = () => {
       <List className={classes.root}>
         { files.map((file, index) => (
           <ListItem key={index}>
-            <ListItemText primary={file.filename} secondary={file.hash} />
+            <Tooltip title={file.filename + file.hash} placement="top">
+            <ListItemText primary={file.filename + file.hash.slice(0, 5)} secondary={formatFileSize(file.size)} />
+            </Tooltip>
             <ListItemSecondaryAction>
               <IconButton
                 edge="end"
