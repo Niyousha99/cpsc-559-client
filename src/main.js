@@ -24,7 +24,7 @@ const createWindow = () => {
     },
   });
 
-  ipcMain.handle('upload', (event) => tracker_upload())
+  ipcMain.handle('upload', (event, fileToUpload) => tracker_upload(fileToUpload))
   // create a handler for ipc 'download'
   ipcMain.handle('download', (event, filename, hash) => tracker_getFile(filename, hash))
   // create a handler for ipc 'refresh'
@@ -148,7 +148,8 @@ const tracker_getFiles = () => {
     .catch(error => console.error(`Error on getFiles: ${error}`));
 }
 
-const tracker_upload = () => {
+const tracker_upload = (fileToUpload) => {
+  upload(fileToUpload);
   const hashes = [];
   const upload_folder = path.join(__dirname, '../../', 'upload')
 
@@ -210,7 +211,32 @@ const tracker_exit = () => {
     .catch(error => console.error(error));
 }
 
+const upload = (file) => {
+  console.log("file selected: " + file)
+  if (!file) {
+    console.error('No file selected');
+    return;
+  }
+  const folderPath = path.join(__dirname, '../../', 'upload')
 
+  if (!fs.existsSync(folderPath)) {
+    fs.mkdirSync(folderPath);
+  }
+
+  const filePath = folderPath + '/' + file.name;
+  const reader = new FileReader();
+  reader.readAsBinaryString(file);
+  reader.onload = () => {
+    const fileContent = reader.result;
+    fs.writeFile(filePath, fileContent, (err) => {
+      if (err) {
+        console.error('Error writing file:', err);
+      } else {
+        console.log('File written to:', filePath);
+      }
+    });
+  };    
+}
 
 const download = (ip, filename) => {
   // the destination file is ./download/<filename>

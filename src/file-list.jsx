@@ -19,24 +19,26 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const formatFileSize = (bytes) => {
+  if(bytes == 0) return '0 Bytes';
+  var k = 1000,
+  sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
+  i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
 const FileList = () => {
-
   const [files, setFiles] = useState([])
+  const [selectedFile, setSelectedFile] = useState(null);
   // const [filteredList, setFilteredList] = useState([])
-
-  
   const classes = useStyles();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const formatFileSize = (bytes) => {
-   if(bytes == 0) return '0 Bytes';
-   var k = 1000,
-       sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
-       i = Math.floor(Math.log(bytes) / Math.log(k));
-   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
+  const handleFileChange = (event) => {
+    setSelectedFile(event.target.files[0]);
+  }
 
-  const handleChange = (event) => {
+  const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
   };
 
@@ -64,8 +66,6 @@ const FileList = () => {
     setFiles(value.files)
   })
 
-
-
   return (
     <div>
       <TextField
@@ -73,14 +73,16 @@ const FileList = () => {
         label="Search"
         variant="outlined"
         value={searchTerm}
-        onChange={handleChange}
+        onChange={handleSearchChange}
       />
-      <Button style={{margin:'10px'}}variant="contained" color="primary" component="label" onClick={() => window.versions.upload()}>
-      Upload
-      <input hidden multiple type="file" />
-      </Button>
-      <Button variant="contained" color="primary" onClick={()=> window.versions.refresh()}>Refresh</Button>
+      <div>
+        <input type="file" onChange={handleFileChange}/>
+        <Button style={{margin:'10px'}} variant="contained" color="primary" onClick={() => window.versions.upload(selectedFile)}>
+          Upload
+        </Button>
+        <Button variant="contained" color="primary" onClick={()=> window.versions.refresh()}>Refresh</Button>
 
+      </div>
       <List className={classes.root}>
         { files.map((file, index) => (
           <ListItem key={index}>
