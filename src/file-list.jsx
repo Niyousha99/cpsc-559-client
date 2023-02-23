@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import {
   List,
@@ -31,13 +31,11 @@ const FileList = () => {
   const classes = useStyles();
 
   const [files, setFiles] = useState([])
-  const [selectedFile, setSelectedFile] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleFileChange = (event) => {
     let uFile = {name:event.target.files[0].name,path:event.target.files[0].path}
     window.versions.upload(uFile);
-    // setSelectedFile(event.target.files[0]);
   }
 
   const handleSearchChange = (event) => {
@@ -53,25 +51,21 @@ const FileList = () => {
  
   return (
     <div>
-      <TextField
-        id="search"
-        label="Search"
-        variant="outlined"
-        value={searchTerm}
-        onChange={handleSearchChange}
-      />
       <div>
-        <input type="file" onChange={handleFileChange}/>
-        {/* upload button: upload all files in the "upload" directory */}
-        <Button style={{margin:'10px'}} variant="contained" color="primary" onClick={() => window.versions.upload()}>
-          Upload
-        </Button>
-        {/* refresh button: get the list of all files from the trackers */}
-        <Button variant="contained" color="primary" onClick={()=> window.versions.refresh()}>Refresh</Button>
-      </div>
-
-      <div>
-        <h1>Available Files</h1>
+        <h1>Available Files for Download</h1>
+        <div>
+        <TextField
+          id="search"
+          label="Search"
+          variant="outlined"
+          value={searchTerm}
+          onChange={handleSearchChange}
+        />
+        </div>
+       <div>
+          {/* refresh button: get the list of all files from the trackers */}
+          <Button style={{marginTop:'10px'}} variant="contained" color="primary" onClick={()=> window.versions.refresh()}>Refresh</Button>
+        </div>
         <List className={classes.root}>
           { filteredList.map((file, index) => (
             <ListItem key={index}>
@@ -91,6 +85,40 @@ const FileList = () => {
           ))}
         </List>
       </div>
+
+      <div>
+        <h1>My Files</h1>
+        <div>
+          <input type="file" onChange={handleFileChange}/>
+        </div>
+
+        <List className={classes.root}>
+          { files.map((file, index) => (
+            <ListItem key={index}>
+              <Tooltip title={file.filename + file.hash} placement="top">
+              <ListItemText primary={file.filename + file.hash.slice(0, 5)} secondary={formatFileSize(file.size)} />
+              </Tooltip>
+              <ListItemSecondaryAction>
+                <IconButton
+                  edge="end"
+                  aria-label="download"
+                  onClick={() => window.versions.download(file.filename, file.hash)}
+                >
+                  <DownloadIcon />
+                </IconButton>
+              </ListItemSecondaryAction>
+            </ListItem>
+          ))}
+        </List>
+        <div>
+          {/* upload button: upload all files in the "upload" directory */}
+          <Button style={{margin:'10px', float:'right'}} variant="contained" color="primary" onClick={() => window.versions.upload()}>
+            Upload
+          </Button>
+        </div>
+      </div>
+
+
 
     </div>
   );

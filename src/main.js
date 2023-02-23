@@ -29,7 +29,7 @@ const createWindow = () => {
       const filename = file.name;
       const filepath = file.path;
 
-      // Copying the file to a the same name
+      // Copying the file to the "upload" folder
       fs.copyFile(filepath, path.join(__dirname, '../../','upload', filename), (err) => {
         if (err) {
           console.log("Fail to upload/copy file:", err);
@@ -225,33 +225,6 @@ const tracker_exit = () => {
     body: JSON.stringify(message)
   })
     .catch(error => console.error(error));
-}
-
-const upload = (file) => {
-  console.log("file selected: " + file)
-  if (!file) {
-    console.error('No file selected');
-    return;
-  }
-  const folderPath = path.join(__dirname, '../../', 'upload')
-
-  if (!fs.existsSync(folderPath)) {
-    fs.mkdirSync(folderPath);
-  }
-
-  const filePath = folderPath + '/' + file.name;
-  const reader = new FileReader();
-  reader.readAsBinaryString(file);
-  reader.onload = () => {
-    const fileContent = reader.result;
-    fs.writeFile(filePath, fileContent, (err) => {
-      if (err) {
-        console.error('Error writing file:', err);
-      } else {
-        console.log('File written to:', filePath);
-      }
-    });
-  };    
 }
 
 const download = (ip, filename) => {
