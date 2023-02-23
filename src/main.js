@@ -24,7 +24,25 @@ const createWindow = () => {
     },
   });
 
-  ipcMain.handle('upload', (event, fileToUpload) => tracker_upload(fileToUpload))
+  ipcMain.handle('upload', (event, file) => {
+    if(file){
+      const filename = file.name;
+      const filepath = file.path;
+
+      // Copying the file to a the same name
+      fs.copyFile(filepath, path.join(__dirname, '../../','upload', filename), (err) => {
+        if (err) {
+          console.log("Fail to upload/copy file:", err);
+        }
+        else {
+          tracker_upload();
+        }
+      });
+    }
+    else{
+      tracker_upload();
+    }
+  })
   // create a handler for ipc 'download'
   ipcMain.handle('download', (event, filename, hash) => tracker_getFile(filename, hash))
   // create a handler for ipc 'refresh'
@@ -70,8 +88,6 @@ app.on('activate', () => {
 app.on('before-quit', () => {
   tracker_exit();
 });
-
-
 
 
 // open express server on port 8888
@@ -148,8 +164,8 @@ const tracker_getFiles = () => {
     .catch(error => console.error(`Error on getFiles: ${error}`));
 }
 
-const tracker_upload = (fileToUpload) => {
-  upload(fileToUpload);
+
+const tracker_upload = () => {
   const hashes = [];
   const upload_folder = path.join(__dirname, '../../', 'upload')
 

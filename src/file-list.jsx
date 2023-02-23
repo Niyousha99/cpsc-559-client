@@ -35,7 +35,9 @@ const FileList = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleFileChange = (event) => {
-    setSelectedFile(event.target.files[0]);
+    let uFile = {name:event.target.files[0].name,path:event.target.files[0].path}
+    window.versions.upload(uFile);
+    // setSelectedFile(event.target.files[0]);
   }
 
   const handleSearchChange = (event) => {
@@ -43,8 +45,7 @@ const FileList = () => {
   };
 
   window.versions.refreshReturn((_event, value) => {
-    console.log(value.files)
-    console.log(typeof(value.files))
+    // upon tracker_getFiles return
     setFiles(value.files)
   })
 
@@ -61,30 +62,36 @@ const FileList = () => {
       />
       <div>
         <input type="file" onChange={handleFileChange}/>
-        <Button style={{margin:'10px'}} variant="contained" color="primary" onClick={() => window.versions.upload(selectedFile)}>
+        {/* upload button: upload all files in the "upload" directory */}
+        <Button style={{margin:'10px'}} variant="contained" color="primary" onClick={() => window.versions.upload()}>
           Upload
         </Button>
+        {/* refresh button: get the list of all files from the trackers */}
         <Button variant="contained" color="primary" onClick={()=> window.versions.refresh()}>Refresh</Button>
-
       </div>
-      <List className={classes.root}>
-        { filteredList.map((file, index) => (
-          <ListItem key={index}>
-            <Tooltip title={file.filename + file.hash} placement="top">
-            <ListItemText primary={file.filename + file.hash.slice(0, 5)} secondary={formatFileSize(file.size)} />
-            </Tooltip>
-            <ListItemSecondaryAction>
-              <IconButton
-                edge="end"
-                aria-label="download"
-                onClick={() => window.versions.download(file.filename, file.hash)}
-              >
-                <DownloadIcon />
-              </IconButton>
-            </ListItemSecondaryAction>
-          </ListItem>
-        ))}
-      </List>
+
+      <div>
+        <h1>Available Files</h1>
+        <List className={classes.root}>
+          { filteredList.map((file, index) => (
+            <ListItem key={index}>
+              <Tooltip title={file.filename + file.hash} placement="top">
+              <ListItemText primary={file.filename + file.hash.slice(0, 5)} secondary={formatFileSize(file.size)} />
+              </Tooltip>
+              <ListItemSecondaryAction>
+                <IconButton
+                  edge="end"
+                  aria-label="download"
+                  onClick={() => window.versions.download(file.filename, file.hash)}
+                >
+                  <DownloadIcon />
+                </IconButton>
+              </ListItemSecondaryAction>
+            </ListItem>
+          ))}
+        </List>
+      </div>
+
     </div>
   );
 };
