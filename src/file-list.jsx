@@ -28,10 +28,10 @@ const formatFileSize = (bytes) => {
 }
 
 const FileList = () => {
+  const classes = useStyles();
+
   const [files, setFiles] = useState([])
   const [selectedFile, setSelectedFile] = useState(null);
-  // const [filteredList, setFilteredList] = useState([])
-  const classes = useStyles();
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleFileChange = (event) => {
@@ -42,30 +42,14 @@ const FileList = () => {
     setSearchTerm(event.target.value);
   };
 
-  // useEffect(()=>{
-  //   const temp = files.filter((file) =>
-  //   file.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  //   setFilteredList(temp)
-  // }, files)
-
-  // const filteredList = 
-  // );
-
-  // const handleDownload = async (filename, ip) => {
-  //   // ipc: inter process call.
-  //   // React is running on the renderer process
-  //   // File-downloader/uploader is running on the main process
-  //   // renderer process calls 'download' handler in the main process (main.js)
-  //   const response = await window.versions.download(ip, filename);
-  //   // alert(response);
-  // };
-
   window.versions.refreshReturn((_event, value) => {
     console.log(value.files)
     console.log(typeof(value.files))
     setFiles(value.files)
   })
 
+  const filteredList = files.filter((file) => (file.filename + file.hash.slice(0, 5)).toLowerCase().includes(searchTerm.toLowerCase()));
+ 
   return (
     <div>
       <TextField
@@ -84,7 +68,7 @@ const FileList = () => {
 
       </div>
       <List className={classes.root}>
-        { files.map((file, index) => (
+        { filteredList.map((file, index) => (
           <ListItem key={index}>
             <Tooltip title={file.filename + file.hash} placement="top">
             <ListItemText primary={file.filename + file.hash.slice(0, 5)} secondary={formatFileSize(file.size)} />
