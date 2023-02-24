@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import {
   List,
@@ -7,7 +7,8 @@ import {
   ListItemSecondaryAction,
   IconButton,
   TextField,
-  Button
+  Button,
+  Tooltip
 } from "@material-ui/core";
 import { GetApp as DownloadIcon } from "@material-ui/icons";
 
@@ -18,84 +19,95 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-// TODO dynamically get list of files from the tracker
-// const fileList = [
-//   { name: "sample.pdf", ip: "10.0.0.206", size: "10 KB" },
-//   { name: "file2.txt", ip: "10.0.0.206", size: "15 KB" },
-//   { name: "file3.txt", ip: "10.0.0.206", size: "20 KB" },
-//   { name: "file4.txt", ip: "10.0.0.206", size: "25 KB" },
-// ];
+const formatFileSize = (bytes) => {
+  if(bytes == 0) return '0 Bytes';
+  var k = 1000,
+  sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
+  i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
 
 const FileList = () => {
+  const classes = useStyles();
 
   const [files, setFiles] = useState([])
-  // const [filteredList, setFilteredList] = useState([])
-
-  
-  const classes = useStyles();
+  const [localFiles, setLocalFiles] = useState([])
   const [searchTerm, setSearchTerm] = useState("");
 
-  // const handleChange = (event) => {
-  //   setSearchTerm(event.target.value);
-  // };
+  const handleFileChange = (event) => {
+    let uFile = {name:event.target.files[0].name,path:event.target.files[0].path}
+    setLocalFiles([...localFiles, uFile]);
+    window.versions.upload(uFile);
+  }
 
-  // useEffect(()=>{
-  //   const temp = files.filter((file) =>
-  //   file.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  //   setFilteredList(temp)
-  // }, files)
-
-  // const filteredList = 
-  // );
-
-  // const handleDownload = async (filename, ip) => {
-  //   // ipc: inter process call.
-  //   // React is running on the renderer process
-  //   // File-downloader/uploader is running on the main process
-  //   // renderer process calls 'download' handler in the main process (main.js)
-  //   const response = await window.versions.download(ip, filename);
-  //   // alert(response);
-  // };
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
 
   window.versions.refreshReturn((_event, value) => {
-    console.log(value.files)
-    console.log(typeof(value.files))
+    // upon tracker_getFiles return
     setFiles(value.files)
   })
 
-
-
+  const filteredList = files.filter((file) => (file.filename + file.hash.slice(0, 5)).toLowerCase().includes(searchTerm.toLowerCase()));
+ 
   return (
     <div>
-      <TextField
-        id="search"
-        label="Search"
-        variant="outlined"
-        value={searchTerm}
-        // onChange={handleChange}
-      />
-      <Button style={{margin:'10px'}}variant="contained" color="primary" component="label">
-      Upload
-      <input hidden multiple type="file" />
-      </Button>
-      <Button variant="contained" color="primary" onClick={()=> window.versions.refresh()}>Refresh</Button>
+      <div>
+        <h1>Available Files for Download</h1>
+        <div>
+        <TextField
+          id="search"
+          label="Search"
+          variant="outlined"
+          value={searchTerm}
+          onChange={handleSearchChange}
+        />
+        </div>
+       <div>
+          {/* refresh button: get the list of all files from the trackers */}
+          <Button style={{marginTop:'10px'}} variant="contained" color="primary" onClick={()=> window.versions.refresh()}>Refresh</Button>
+        </div>
+        <List className={classes.root}>
+          { filteredList.map((file, index) => (
+            <ListItem key={index}>
+              <Tooltip title={file.filename + file.hash} placement="top">
+              <ListItemText primary={file.filename + file.hash.slice(0, 5)} secondary={formatFileSize(file.size)} />
+              </Tooltip>
+              <ListItemSecondaryAction>
+                <IconButton
+                  edge="end"
+                  aria-label="download"
+                  onClick={() => window.versions.download(file.filename, file.hash)}
+                >
+                  <DownloadIcon />
+                </IconButton>
+              </ListItemSecondaryAction>
+            </ListItem>
+          ))}
+        </List>
+      </div>
 
-      <List className={classes.root}>
-        { files.map((file, index) => (
-          <ListItem key={index}>
-            <ListItemText primary={file.filename} secondary={file.hash} />
-            <ListItemSecondaryAction>
-              <IconButton
-                edge="end"
-                aria-label="download"
-                onClick={() => window.versions.download(file.filename, file.hash)}
-              >
-                <DownloadIcon />
-              </IconButton>
-            </ListItemSecondaryAction>
-          </ListItem>
-        ))}
-      </List>
+      <div>
+        <h1>My Files</h1>
+        <div>
+          <input type="file" onChange={handleFileChange}/>
+        </div>
+        {console.log(localFiles)}
+        <List className={classes.root}>
+          {localFiles.map((file, index) => (
+            <ListItem key={index}>
+              <ListItemText primary={file.name} />
+            </ListItem>          
+          ))}
+        </List>
+        <div>
+          {/* upload button: upload all files in the "upload" directory */}
+          <Button style={{margin:'10px', float:'right'}} variant="contained" color="primary" onClick={() => window.versions.upload()}>
+            Upload
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
