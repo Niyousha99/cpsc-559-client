@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('versions', {
   electron: () => process.versions.electron,
   download: (filename,hash) => ipcRenderer.invoke('download', filename, hash),
   upload: (file) => ipcRenderer.invoke('upload',file),
+  getLocalFiles: () => ipcRenderer.invoke('getLocalFiles'),
   refresh: () => ipcRenderer.invoke('refresh'),
   // expose a callback method from main to rendererer. Main invoke the stub
   // renderer handle the stub

@@ -31,6 +31,7 @@ const FileList = () => {
   const classes = useStyles();
 
   const [files, setFiles] = useState([])
+  const [localFiles, setLocalFiles] = useState([])
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleFileChange = (event) => {
@@ -91,23 +92,16 @@ const FileList = () => {
         <div>
           <input type="file" onChange={handleFileChange}/>
         </div>
-
+        <div>
+          {/* get the list of all locally uploaded files */}
+          <Button style={{marginTop:'10px'}} variant="contained" color="primary" onClick={() => window.versions.getLocalFiles = (uploadedFiles) => setLocalFiles(uploadedFiles)}>Refresh</Button>
+        </div>
+        {console.log(localFiles)}
         <List className={classes.root}>
-          { files.map((file, index) => (
+          {localFiles.map((file, index) => (
             <ListItem key={index}>
-              <Tooltip title={file.filename + file.hash} placement="top">
-              <ListItemText primary={file.filename + file.hash.slice(0, 5)} secondary={formatFileSize(file.size)} />
-              </Tooltip>
-              <ListItemSecondaryAction>
-                <IconButton
-                  edge="end"
-                  aria-label="download"
-                  onClick={() => window.versions.download(file.filename, file.hash)}
-                >
-                  <DownloadIcon />
-                </IconButton>
-              </ListItemSecondaryAction>
-            </ListItem>
+              <ListItemText primary={file} />
+            </ListItem>          
           ))}
         </List>
         <div>
