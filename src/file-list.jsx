@@ -36,6 +36,7 @@ const FileList = () => {
 
   const handleFileChange = (event) => {
     let uFile = {name:event.target.files[0].name,path:event.target.files[0].path}
+    setLocalFiles([...localFiles, uFile]);
     window.versions.upload(uFile);
   }
 
@@ -92,15 +93,11 @@ const FileList = () => {
         <div>
           <input type="file" onChange={handleFileChange}/>
         </div>
-        <div>
-          {/* get the list of all locally uploaded files */}
-          <Button style={{marginTop:'10px'}} variant="contained" color="primary" onClick={() => window.versions.getLocalFiles = (uploadedFiles) => setLocalFiles(uploadedFiles)}>Refresh</Button>
-        </div>
         {console.log(localFiles)}
         <List className={classes.root}>
           {localFiles.map((file, index) => (
             <ListItem key={index}>
-              <ListItemText primary={file} />
+              <ListItemText primary={file.name} />
             </ListItem>          
           ))}
         </List>
@@ -111,9 +108,6 @@ const FileList = () => {
           </Button>
         </div>
       </div>
-
-
-
     </div>
   );
 };

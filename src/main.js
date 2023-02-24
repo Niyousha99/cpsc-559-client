@@ -43,16 +43,7 @@ const createWindow = () => {
       tracker_upload();
     }
   })
-
-  ipcMain.handle('getLocalFiles', (event) => {
-    const upload_folder = path.join(__dirname, '../../', 'upload')
-    fs.readdir(upload_folder, (error, files) => {
-      if (error) console.error(error);  
-      console.log(files);
-      return files;
-    })
-  });
-
+  
   // create a handler for ipc 'download'
   ipcMain.handle('download', (event, filename, hash) => tracker_getFile(filename, hash))
   // create a handler for ipc 'refresh'
