@@ -48,12 +48,18 @@ const createWindow = () => {
   ipcMain.handle('download', (event, filename, hash) => tracker_getFile(filename, hash))
   // create a handler for ipc 'refresh'
   ipcMain.handle('refresh', (event) => tracker_getFiles())
+
+  // ipcMain.handle('local_files', (event) => local_files())
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools();
 };
+
+// const local_files = () => {
+
+// }
 
 
 // This method will be called when Electron has finished
@@ -141,7 +147,7 @@ const tracker_getFile = (filename, hash) => {
     .then(response => response.json())
     .then(data => {
       let peers = data.peers;
-      download(peers[0].ip, filename)
+      download(peers[0].ipAddress, filename)
     })
     .catch(error => console.error(error));
 
