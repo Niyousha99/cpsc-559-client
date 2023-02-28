@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('versions', {
   download: (filename,hash) => ipcRenderer.invoke('download', filename, hash),
   upload: (file) => ipcRenderer.invoke('upload',file),
   refresh: () => ipcRenderer.invoke('refresh'),
+  // local_files: () => ipcRenderer.invoke('local_files'),
   // expose a callback method from main to rendererer. Main invoke the stub
   // renderer handle the stub
   refreshReturn: (callback) => ipcRenderer.on('refresh-return', callback)
