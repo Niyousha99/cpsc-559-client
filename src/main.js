@@ -90,10 +90,17 @@ app.on('activate', () => {
   }
 });
 
+let asyncOperationDone = false
 
 // notify the tracker before quitting
-app.on('before-quit', () => {
-  tracker_exit();
+app.on('before-quit', async (e) => {
+  if (!asyncOperationDone) {
+    e.preventDefault();
+    await tracker_exit();
+    asyncOperationDone = true;
+    console.log("async operation done, quitting");
+    app.quit();
+  }
 });
 
 
@@ -219,19 +226,20 @@ const tracker_upload = () => {
   });
 }
 
-const tracker_exit = () => {
+const tracker_exit = async () => {
   // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
   const message = { timestamp: Date.now() };
   // send post request to the tracker
-  fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/exit`, {
+  const response = await fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/exit`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(message)
   })
-    .catch(error => console.error(error));
+    // // .then(response => console.log(response.json))
+    // .catch(error => console.error(error));
 }
 
 const download = (ip, filename) => {
