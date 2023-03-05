@@ -1,7 +1,7 @@
 const tracker_locations = {
     trackers : [
-        {ip: "127.0.0.1" , port:"3001"},
-        {ip: "192.168.0.20", port:"3001"}
+        {ip: "192.168.0.20", port:"3001"},
+        {ip: "192.168.0.14" , port:"3001"}
     ]
 }
 

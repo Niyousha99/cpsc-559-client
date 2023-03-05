@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 
 const http = require('http'); // or 'https' for https:// URLs
@@ -11,7 +11,6 @@ require('dotenv').config()
 
 const tracker_locations = require('./trackerAddress.js')
 let current_tracker = 0
-
 
 console.log(tracker_locations)
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -97,10 +96,14 @@ app.on('activate', () => {
 });
 
 let asyncOperationDone = false
+let quitDialog = false
 
 // notify the tracker before quitting
 app.on('before-quit', async (e) => {
-  if (!asyncOperationDone) {
+  if (current_tracker == tracker_locations["trackers"].length && !quitDialog){
+    e.preventDefault();
+  }
+  else if (current_tracker != tracker_locations["trackers"].length && !asyncOperationDone) {
     e.preventDefault();
     await tracker_exit();
     asyncOperationDone = true;
@@ -131,9 +134,37 @@ server.listen(port, () => {
 
 const switch_tracker = (last) => {
   if (last == current_tracker) {
+
     current_tracker += 1
-    current_tracker %= tracker_locations["trackers"].length
-    console.log(`Timeout - Tracker changed to ${current_tracker}`)
+    if(current_tracker==tracker_locations["trackers"].length){
+
+      dialog.showMessageBox(null, {
+        type: 'info',
+        buttons: ['OK'],
+        defaultId: 0,
+        title: 'Network Down',
+        message: `No current available trackers online`,
+        detail: 'Exiting'
+      }).then(()=>{
+        quitDialog = true
+        app.quit()
+      });
+    }
+    else {   
+      console.log(`Timeout - Tracker changed to ${current_tracker}`)
+      tracker_join()
+      tracker_upload()
+
+      dialog.showMessageBox(null, {
+        type: 'info',
+        buttons: ['OK'],
+        defaultId: 0,
+        title: 'Tracker Switched',
+        message: `Tracker-${last} did not respond, switched to Tracker-${current_tracker}`,
+        detail: 'Press Rrefresh to see the changes'
+      })
+    }
+    // current_tracker %= tracker_locations["trackers"].length
   }
   else {
     console.log(`Timeout - tracker already switched to ${current_tracker}`)
