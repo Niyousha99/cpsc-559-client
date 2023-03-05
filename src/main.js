@@ -1,4 +1,4 @@
-const { app, BrowserWindow,  ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 const http = require('http'); // or 'https' for https:// URLs
@@ -8,6 +8,12 @@ const crypto = require("crypto");
 const { response } = require('express');
 require('dotenv').config()
 
+
+const tracker_locations = require('./trackerAddress.js')
+let current_tracker = 0
+
+
+console.log(tracker_locations)
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -25,12 +31,12 @@ const createWindow = () => {
   });
 
   ipcMain.handle('upload', (event, file) => {
-    if(file){
+    if (file) {
       const filename = file.name;
       const filepath = file.path;
 
       // Copying the file to the "upload" folder
-      fs.copyFile(filepath, path.join(__dirname, '../../','upload', filename), (err) => {
+      fs.copyFile(filepath, path.join(__dirname, '../../', 'upload', filename), (err) => {
         if (err) {
           console.log("Fail to upload/copy file:", err);
         }
@@ -39,11 +45,11 @@ const createWindow = () => {
         }
       });
     }
-    else{
+    else {
       tracker_upload();
     }
   })
-  
+
   // create a handler for ipc 'download'
   ipcMain.handle('download', (event, filename, hash) => tracker_getFile(filename, hash))
   // create a handler for ipc 'refresh'
@@ -123,19 +129,36 @@ server.listen(port, () => {
 })
 
 
+const switch_tracker = (last) => {
+  if (last == current_tracker) {
+    current_tracker += 1
+    current_tracker %= tracker_locations["trackers"].length
+    console.log(`Timeout - Tracker changed to ${current_tracker}`)
+  }
+  else {
+    console.log(`Timeout - tracker already switched to ${current_tracker}`)
+  }
+}
+
 const tracker_join = () => {
   // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
   const message = { timestamp: Date.now() };
+
+  let last = current_tracker;
   // send post request to the tracker
-  fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/join`, {
+  const request = fetch(`http://${tracker_locations["trackers"][current_tracker]['ip']}:${tracker_locations["trackers"][current_tracker]['port']}/join`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(message)
   })
-    .catch(error => console.error(`Error on join: ${error}`));
+    .catch(error => () => { 
+      console.error(`timeout on join`)
+      switch_tracker(last)
+   });
+
 }
 
 const tracker_getFile = (filename, hash) => {
@@ -144,8 +167,9 @@ const tracker_getFile = (filename, hash) => {
   // const message = { timestamp: Date.now(), "filename": filename, "hash": hash };
   // send post request to the tracker
   // let peers;
+  let last = current_tracker
 
-  fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/getFile?timestamp=${Date.now()}&filename=${filename}&hash=${hash}`, {
+  fetch(`http://${tracker_locations["trackers"][current_tracker]['ip']}:${tracker_locations["trackers"][current_tracker]['port']}/getFile?timestamp=${Date.now()}&filename=${filename}&hash=${hash}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
@@ -156,7 +180,7 @@ const tracker_getFile = (filename, hash) => {
       let peers = data.peers;
       download(peers[0].ipAddress, filename)
     })
-    .catch(error => console.error(error));
+    .catch(error => switch_tracker(last));
 
   // return peers;
 }
@@ -165,7 +189,10 @@ const tracker_getFiles = () => {
   // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
   // send post request to the tracker
-  fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/getFiles?timestamp=${Date.now()}`, {
+
+  let last = current_tracker
+
+  fetch(`http://${tracker_locations["trackers"][current_tracker]['ip']}:${tracker_locations["trackers"][current_tracker]['port']}/getFiles?timestamp=${Date.now()}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
@@ -175,14 +202,14 @@ const tracker_getFiles = () => {
     .then(data => {
       mainWindow.webContents.send('refresh-return', data)
     })
-    .catch(error => console.error(`Error on getFiles: ${error}`));
+    .catch(error => switch_tracker(last));
 }
-
 
 const tracker_upload = () => {
   const hashes = [];
   const upload_folder = path.join(__dirname, '../../', 'upload')
 
+  let last = current_tracker
   // read files from the upload directory
   fs.readdir(upload_folder, (error, files) => {
     // if error, print error
@@ -206,20 +233,20 @@ const tracker_upload = () => {
       // on finish, produce the PRNG result
       s.on('end', function () {
         const hash = sha256sum.digest('hex');
-        hashes.push({ filename:filename, hash:hash, size:stats.size });
+        hashes.push({ filename: filename, hash: hash, size: stats.size });
         processedFiles++;
         // if all files processed
         if (processedFiles === files.length) {
           // send post request to the tracker
           const message = { timestamp: Date.now(), files: hashes }
-          fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/upload`, {
+          fetch(`http://${tracker_locations["trackers"][current_tracker]['ip']}:${tracker_locations["trackers"][current_tracker]['port']}/upload`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify(message)
           })
-            .catch(error => console.error(`Error on Join: ${error}`));
+            .catch(error => switch_tracker(last));
         }
       });
     });
@@ -231,15 +258,15 @@ const tracker_exit = async () => {
   // timestampe is the number of milliseconds elapsed since the epoch
   const message = { timestamp: Date.now() };
   // send post request to the tracker
-  const response = await fetch(`http://${process.env.TRACKER_IP}:${process.env.TRACKER_PORT}/exit`, {
+  const response = await fetch(`http://${tracker_locations["trackers"][current_tracker]['ip']}:${tracker_locations["trackers"][current_tracker]['port']}/exit`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(message)
   })
-    // // .then(response => console.log(response.json))
-    // .catch(error => console.error(error));
+  // // .then(response => console.log(response.json))
+  .catch(error => console.error(error));
 }
 
 const download = (ip, filename) => {
