@@ -73,7 +73,7 @@ const createWindow = () => {
 app.on('ready', () => {
   createWindow();
 
-  tracker_join();
+  // tracker_join();
   tracker_upload(); // this only upload at start up
   tracker_getFiles();
 });
@@ -152,7 +152,7 @@ const switch_tracker = (last) => {
     }
     else {   
       console.log(`Timeout - Tracker changed to ${current_tracker}`)
-      tracker_join()
+      // tracker_join()
       tracker_upload()
 
       dialog.showMessageBox(null, {
