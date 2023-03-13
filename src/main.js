@@ -209,7 +209,25 @@ const tracker_getFile = (filename, hash) => {
     .then(response => response.json())
     .then(data => {
       let peers = data.peers;
-      download(peers[0].ipAddress, filename)
+      // length of peers
+      for(let i=0; i< peers.length; i++) {
+        try{
+          // 
+          download(peers[i].ipAddress, filename);
+        }
+        catch{
+          if (i==peers.length-1) {
+            dialog.showMessageBox(null, {
+              type: 'info',
+              buttons: ['OK'],
+              defaultId: 0,
+              title: `Fail to download ${filename}`,
+              message: `${filename}:${hash} - is not available for download`,
+              detail: 'Press Rrefresh to see the changes'
+            })
+          } 
+        }
+      }
     })
     .catch(error => switch_tracker(last));
 
@@ -305,13 +323,18 @@ const download = (ip, filename) => {
   const file = fs.createWriteStream(path.join(__dirname, '../../', 'download', filename));
   // request the file
   const request = http.get(`http://${ip}:8888/${filename}`, function (response) {
-    // pipe the binary stream into the file
-    response.pipe(file);
-    // after download completed close filestream
-    file.on("finish", () => {
-      file.close();
-      console.log("Download Completed");
-    });
+    if(response.statusCode != 200){
+      throw new Error(`File - http://${ip}:8888/${filename} is not available.`);
+    }
+    else {
+      // pipe the binary stream into the file
+      response.pipe(file);
+      // after download completed close filestream
+      file.on("finish", () => {
+        file.close();
+        console.log("Download Completed");
+      });
+    }
   });
   return "download started"
 }
