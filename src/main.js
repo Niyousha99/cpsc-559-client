@@ -304,36 +304,56 @@ const tracker_exit = async () => {
 const download = (filename, peers, i) => {
   // the destination file is ./download/<filename>
   const file = fs.createWriteStream(path.join(__dirname, '../../', 'download', filename));
-  // request the file
   
-  const request = http.get(`http://${peers[i].ipAddress}:8888/${filename}`, function (response) {
-    if(response.statusCode != 200){
-      if(i==peers.length-1){
-        dialog.showMessageBox(null, {
-          type: 'info',
-          buttons: ['OK'],
-          defaultId: 0,
-          title: `Fail to download ${filename}`,
-          message: `${filename} - is not available`,
-          // detail: 'Press Rrefresh to see the changes'
-        });
-        fs.rmSync(path.join(__dirname, '../../', 'download', filename), {
-          force: true,
-        });
+  // request the file
+  try{
+    const request = http.get(`http://${peers[i].ipAddress}:8888/${filename}`, function (response) {
+      if(response.statusCode != 200){
+        if(i==peers.length-1) {
+          dialog.showMessageBox(null, {
+            type: 'info',
+            buttons: ['OK'],
+            defaultId: 0,
+            title: `Fail to download ${filename}`,
+            message: `${filename} - is not available`,
+          });
+          fs.rmSync(path.join(__dirname, '../../', 'download', filename), {
+            force: true,
+          });
+        }
+        else {
+          download(filename, peers, i+1);
+        }
       }
       else {
-        download(filename, peers, i+1);
+        // pipe the binary stream into the file
+        response.pipe(file);
+        // after download completed close filestream
+        file.on("finish", () => {
+          file.close();
+          console.log("Download Completed");
+        });
       }
-    }
-    else {
-      // pipe the binary stream into the file
-      response.pipe(file);
-      // after download completed close filestream
-      file.on("finish", () => {
-        file.close();
-        console.log("Download Completed");
+    });
+  }
+  catch(err){
+    if(i==peers.length-1) {
+      dialog.showMessageBox(null, {
+        type: 'info',
+        buttons: ['OK'],
+        defaultId: 0,
+        title: `Fail to download ${filename}`,
+        message: `${filename} - is not available`,
+      });
+      fs.rmSync(path.join(__dirname, '../../', 'download', filename), {
+        force: true,
       });
     }
-  });
+    else {
+      download(filename, peers, i+1);
+    }
+  }
+
+  
   return "download started"
 }
