@@ -175,7 +175,7 @@ const switch_tracker = (last) => {
 const tracker_join = () => {
   // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
-  const message = { timestamp: Date.now() };
+  const message = { timestamp: Date.now(), ip: tracker_locations.localIp };
 
   let last = current_tracker;
   // send post request to the tracker
@@ -271,7 +271,7 @@ const tracker_upload = () => {
         // if all files processed
         if (processedFiles === files.length) {
           // send post request to the tracker
-          const message = { timestamp: Date.now(), files: hashes }
+          const message = { timestamp: Date.now(), files: hashes, ip: tracker_locations.localIp }
           fetch(`http://${tracker_locations["trackers"][current_tracker]['ip']}:${tracker_locations["trackers"][current_tracker]['port']}/upload`, {
             method: 'POST',
             headers: {
@@ -289,7 +289,7 @@ const tracker_upload = () => {
 const tracker_exit = async () => {
   // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
-  const message = { timestamp: Date.now() };
+  const message = { timestamp: Date.now(), ip: tracker_locations.localIp };
   // send post request to the tracker
   const response = await fetch(`http://${tracker_locations["trackers"][current_tracker]['ip']}:${tracker_locations["trackers"][current_tracker]['port']}/exit`, {
     method: 'POST',
