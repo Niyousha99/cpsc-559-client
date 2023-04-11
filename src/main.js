@@ -9,6 +9,9 @@ const { response } = require('express');
 const axios = require('axios');
 require('dotenv').config()
 
+var ip = require("ip");
+let localIp = console.dir ( ip.address() );
+console.log(localIp)
 
 const tracker_locations = require('./trackerAddress.js')
 let current_tracker = 0
@@ -175,7 +178,7 @@ const switch_tracker = (last) => {
 const tracker_join = () => {
   // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
-  const message = { timestamp: Date.now(), ip: tracker_locations.localIp };
+  const message = { timestamp: Date.now(), ip: localIp };
 
   let last = current_tracker;
   // send post request to the tracker
@@ -271,7 +274,7 @@ const tracker_upload = () => {
         // if all files processed
         if (processedFiles === files.length) {
           // send post request to the tracker
-          const message = { timestamp: Date.now(), files: hashes, ip: tracker_locations.localIp }
+          const message = { timestamp: Date.now(), files: hashes, ip: localIp }
           fetch(`http://${tracker_locations["trackers"][current_tracker]['ip']}:${tracker_locations["trackers"][current_tracker]['port']}/upload`, {
             method: 'POST',
             headers: {
@@ -289,7 +292,7 @@ const tracker_upload = () => {
 const tracker_exit = async () => {
   // create timestamp
   // timestampe is the number of milliseconds elapsed since the epoch
-  const message = { timestamp: Date.now(), ip: tracker_locations.localIp };
+  const message = { timestamp: Date.now(), ip: localIp };
   // send post request to the tracker
   const response = await fetch(`http://${tracker_locations["trackers"][current_tracker]['ip']}:${tracker_locations["trackers"][current_tracker]['port']}/exit`, {
     method: 'POST',
@@ -334,6 +337,17 @@ const download = (filename, peers, i) => {
                     fs.rmSync(path.join(__dirname, '../../', 'download', filename), {
                       force: true,
                     });
+                    
+                    let message = {ip:peers[i].ipAddress}
+                    fetch(`http://${tracker_locations["trackers"][current_tracker]['ip']}:${tracker_locations["trackers"][current_tracker]['port']}/exit`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify(message)
+                    })
+
+
                   }
                   else {
                     download(filename, peers, i+1);
