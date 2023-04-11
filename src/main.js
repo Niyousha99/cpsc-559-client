@@ -9,9 +9,10 @@ const { response } = require('express');
 const axios = require('axios');
 require('dotenv').config()
 
-var ip = require("ip");
-let localIp = console.dir ( ip.address() );
-console.log(localIp)
+var ipGen = require("ip");
+// var localIp = "10.0.0.70"
+var localIp = ipGen.address() 
+// console.log(localIp)
 
 const tracker_locations = require('./trackerAddress.js')
 let current_tracker = 0
@@ -275,6 +276,7 @@ const tracker_upload = () => {
         if (processedFiles === files.length) {
           // send post request to the tracker
           const message = { timestamp: Date.now(), files: hashes, ip: localIp }
+          console.log(`upload:${localIp}` )
           fetch(`http://${tracker_locations["trackers"][current_tracker]['ip']}:${tracker_locations["trackers"][current_tracker]['port']}/upload`, {
             method: 'POST',
             headers: {
